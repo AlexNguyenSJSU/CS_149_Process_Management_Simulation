@@ -154,18 +154,21 @@ string trim(string trimmed_str)
 void set(int value) {
     // TODO: Implement
     // 1. Set the CPU value to the passed-in value.
+    cpu.value = value;
 }
 
 // Implements the A operation.
 void add(int value) {
     // TODO: Implement
     // 1. Add the passed-in value to the CPU value.
+     cpu.value += value;
 }
 
 // Implements the D operation.
 void decrement(int value) {
     // TODO: Implement
     // 1. Subtract the integer value from the CPU value.
+    cpu.value -= value;
 }
 
 // Performs scheduling.
@@ -177,6 +180,7 @@ void schedule() {
     //     a. Mark the processing as running (update the new process's PCB state)
     //     b. Update the CPU structure with the PCB entry details (program, program counter,
     //        value, etc.)
+    
 }
 
 // Implements the B operation.
@@ -188,6 +192,16 @@ void block() {
     //     b. Store the CPU program counter in the PCB's program counter.
     //     c. Store the CPU's value in the PCB's value.
     // 3. Update the running state to -1 (basically mark no process as running). Note that a new process will be chosen to run later (via the Q command code calling the schedule() function).
+    blockedState.push_back(runningState);
+
+    // Update PCB entry
+    PcbEntry &runningProcess = pcbEntry[runningState];
+    runningProcess.state = STATE_BLOCKED;
+    runningProcess.programCounter = cpu.programCounter;
+    runningProcess.value = cpu.value;
+
+    // Mark no process as currently running
+    runningState = -1;
 }
 
 // Implements the E operation.
@@ -197,6 +211,14 @@ void end() {
     // 2. Update the cumulative time difference (increment it by timestamp + 1 - start time of the process).
     // 3. Increment the number of terminated processes.
     // 4. Update the running state to -1 (basically mark no process as running). Note that a new process will be chosen to run later (via the Q command code calling the schedule function).
+    PcbEntry &runningProcess = pcbEntry[runningState];
+
+    // Calculate turnaround time
+    cumulativeTimeDiff += (timestamp + 1 - runningProcess.startTime);
+    numTerminatedProcesses++;
+
+    // Mark no process as running
+    runningState = -1;
 }
 
 // Implements the F operation.
@@ -215,6 +237,44 @@ void fork(int value) {
     // g. Set the start time to the current timestamp
     // 5. Add the pcb index to the ready queue.
     // 6. Increment the cpu's program counter by the value read in #3
+    // Get the next available index in PCB
+    int newProcessId = -1;
+    for (int i = 0; i < 10; ++i) {
+        if (pcbEntry[i].state == STATE_READY || pcbEntry[i].state == STATE_BLOCKED || i == runningState) continue;
+        newProcessId = i;
+        break;
+    }
+
+    if (newProcessId == -1) {
+        cout << "No more available process slots!" << endl;
+        return;
+    }
+
+    PcbEntry &runningProcess = pcbEntry[runningState];
+    PcbEntry &newProcess = pcbEntry[newProcessId];
+
+    if (value + cpu.programCounter >= runningProcess.program.size()) {
+        cout << "Fork error: Out-of-bounds instruction." << endl;
+        return;
+    }
+
+    // Set up the new process PCB
+    newProcess.processId = newProcessId;
+    newProcess.parentProcessId = runningProcess.processId;
+    newProcess.program = runningProcess.program;
+    newProcess.programCounter = cpu.programCounter;
+    newProcess.value = cpu.value;
+    newProcess.priority = runningProcess.priority;
+    newProcess.state = STATE_READY;
+    newProcess.startTime = timestamp;
+    newProcess.timeUsed = 0;
+
+    // Add to ready queue
+    readyState.push_back(newProcessId);
+
+    // Update the parent process's program counter
+    cpu.programCounter += value;
+
 }
 
 // Implements the R operation.
@@ -224,6 +284,17 @@ void replace(string &argument) {
     // 2. Use createProgram() to read in the filename specified by argument into the CPU (*cpu.pProgram)
     // a. Consider what to do if createProgram fails. I printed an error, incremented the cpu program counter and then returned. Note that createProgram can fail if the file could not be opened or did not exist.
     // 3. Set the program counter to 0.
+    cpu.pProgram->clear();
+
+    // Load new program
+    if (!createProgram(argument, *cpu.pProgram)) {
+        cout << "Error: Failed to replace program with " << argument << endl;
+        cpu.programCounter++;
+        return;
+    }
+
+    // Set the program counter to the start of the new program
+    cpu.programCounter = 0;
 }
 
 // Implements the Q command.
@@ -282,6 +353,19 @@ void unblock() {
     //     b. Add the process to the ready queue.
     //     c. Change the state of the process to ready (update its PCB entry).
     // 2. Call the schedule() function to give an unblocked process a chance to run (if possible).
+    if (blockedState.empty())
+        return;
+    // 1. If the blocked queue contains any processes:
+    // a. Remove a process form the front of the blocked queue.
+    int removedProcess = blockedState.front();
+    blockedState.pop_front();
+    // b. Add the process to the ready queue.
+    readyState.emplace_back(removedProcess);
+    // c. Change the state of the process to ready (update its PCB entry).
+    processTable[removedProcess]->state = READY;
+
+    // 2. Call the schedule() function to give an unblocked process a chance to run (if possible).
+    schedule();
 }
 
 // Implements the P command.
