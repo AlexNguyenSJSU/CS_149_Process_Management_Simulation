@@ -353,20 +353,18 @@ void unblock() {
     //     b. Add the process to the ready queue.
     //     c. Change the state of the process to ready (update its PCB entry).
     // 2. Call the schedule() function to give an unblocked process a chance to run (if possible).
-    if (!blockedState.empty()) {
-        // Remove process from the blocked queue
-        int processId = blockedState.front();
-        blockedState.pop_front();
+    if (blockedState.empty())
+        return;
+    // 1. If the blocked queue contains any processes:
+    // a. Remove a process form the front of the blocked queue.
+    int removedProcess = blockedState.front();
+    blockedState.pop_front();
+    // b. Add the process to the ready queue.
+    readyState.emplace_back(removedProcess);
+    // c. Change the state of the process to ready (update its PCB entry).
+    // processTable[removedProcess]->state = READY;
 
-        // Move the process to the ready queue
-        readyState.push_back(processId);
-
-        // Update the process state
-        PcbEntry &blockedProcess = pcbEntry[processId];
-        blockedProcess.state = STATE_READY;
-    }
-
-    // Schedule a new process to run
+    // 2. Call the schedule() function to give an unblocked process a chance to run (if possible).
     schedule();
 }
 
@@ -379,7 +377,7 @@ void print() {
 int runProcessManager(int fileDescriptor) {
     //vector<PcbEntry> pcbTable;
     // Attempt to create the init process.
-    if (!createProgram("init", pcbEntry[0].program)) {
+    if (!createProgram("file.txt", pcbEntry[0].program)) {
         return EXIT_FAILURE;
     }
 
