@@ -76,10 +76,13 @@ bool createProgram(const string &filename, vector<Instruction> &program) {
     ifstream file;
     int lineNum = 0;
 
+    program.clear();
     file.open(filename.c_str());
 
     if (!file.is_open()) {
-        cout << "Error opening file " << filename << endl;
+        char* currDir = getcwd(NULL, 0);
+        cout << "Error opening file " << filename << "\" in \"" << currDir << "\"" << endl;
+        free(currDir);
         return false;
     }
 
@@ -167,6 +170,7 @@ bool createProgram(const string &filename, vector<Instruction> &program) {
 */
 void set(int value) {
     cpu.value = value;
+    cout << "Set CPU's value to " << value << endl; 
 }
 
 /**
@@ -176,6 +180,7 @@ void set(int value) {
 */
 void add(int value) { 
     cpu.value += value;
+    cout << "Incremented CPU's value by " << value << endl;
 }
 
 /**
@@ -185,6 +190,7 @@ void add(int value) {
 */
 void decrement(int value) {
     cpu.value -= value;
+    cout << "Decremented CPU's value by " << value << endl; 
 }
 
 /**
@@ -219,6 +225,7 @@ void schedule() {
 
         // variable 'runningState' updates to the current process's index
         runningState = nextProcess; 
+        cout << "Process running, pid = " << pcbEntry[nextProcess].processId << endl; 
     }
 }
 
@@ -229,7 +236,7 @@ void block() {
     // TODO: Implement
     if (runningState != -1) {
         // 1. Add the PCB index of the running process (stored in runningState) to the blocked queue.
-        blockedState.push_back(runningState);
+        blockedState.emplace_back(runningState);
 
         // 2. Update the process's PCB entry
         //     a. Change the PCB's state to blocked.
@@ -242,6 +249,7 @@ void block() {
         // 3. Update the running state to -1 (basically mark no process as running). 
         //    Note that a new process will be chosen to run later (via the Q command code calling the schedule() function).
         runningState = -1;
+        cout << "Blocked process, pid = " << pcbEntry[runningState].processId << endl; 
     }
 }
 
@@ -258,6 +266,7 @@ void end() {
         // 3. Increment the number of terminated processes.
         numTerminatedProcesses++;
 
+        cout << "Ended process, pid = " << running_pro.processId << endl; 
         // 4. Update the running state to -1 (basically mark no process as running). 
         //    Note that a new process will be chosen to run later (via the Q command code calling the schedule function).
         runningState = -1;
@@ -301,6 +310,7 @@ void fork(int value) {
         child_pro.priority = parent_pro.priority;
         child_pro.state = STATE_READY;
         child_pro.startTime = timestamp;
+        cout << "Forked new process, pid = " << child_pro.processId << endl; 
     }
 
     // 5. Add the pcb index to the ready queue
@@ -326,13 +336,14 @@ void replace(string &argument) {
     //    Note that createProgram can fail if the file could not be opened or did not exist.
     if (!successful_create_program)
     {
-        cout << "Error occurred " << endl;
-        cpu.programCounter += 1;
+        cout << "Error occurred when executing R operation, end the process now!" << endl;
+        cpu.programCounter++;
         return;
     }
 
     // 3. Set the program counter to 0.
     cpu.programCounter = 0;
+    cout << "Replaced process with " << argument << ", pid = " << pcbEntry[runningState].processId << endl;
 }
 
 // Implements the Q command.
@@ -380,7 +391,7 @@ void quantum() {
             break;
     }
 
-    ++timestamp;
+    timestamp++;
     schedule();
 }
 
@@ -394,11 +405,12 @@ void unblock() {
         int next_process = blockedState.front();
         blockedState.pop_front();
         //  b. Add the process to the ready queue.
-        readyState.push_back(next_process);
+        readyState.emplace_back(next_process);
         //  c. Change the state of the process to ready (update its PCB entry).
         pcbEntry[next_process].state = STATE_READY;
         //  d. Call the schedule() function to give an unblocked process a chance to run (if possible).
         schedule();
+        cout << "Unblocked process, pid = " << pcbEntry[next_process].processId << endl; 
     }
 }
 
@@ -430,6 +442,8 @@ void print() {
     cout << "***************************************************" << endl;
     cout << "The Current System State: \n";
 
+    cout << "CURRENT TIME: " << timestamp << endl;
+
     if (runningState != -1) {
         cout << "Current Running State(s): " << to_string(runningState) << endl;
     } 
@@ -441,14 +455,14 @@ void print() {
 
     cout << "Process(es) in Ready Queue" << endl;
     for (int process: readyState){
-        cout << "ID: " << process << endl;
+        cout << process << endl;
     }
 
     cout << "-------------------------------" << endl;
 
     cout << "Process(es) in Blocked Queue" << endl;
     for (int process: blockedState) {
-        cout << "ID: " << process << endl;
+        cout << process << endl;
     }
 
     cout << "-------------------------------" << endl;
@@ -457,15 +471,15 @@ void print() {
 
     for (const auto& each_process: pcbEntry) {
         if (each_process.processId >= 0) {
-            cout << "Process ID: " << each_process.processId << endl;
-            cout << "Parent Process ID: " << each_process.parentProcessId << endl;
-            cout << "Process Program Counter: " << each_process.programCounter << endl;
-            cout << "Process Value: " << each_process.value << endl;
-            cout << "Process Priority: " << each_process.priority << endl;
-            cout << "Process State: " << helper_converting_state(each_process.state) << endl;
+            cout << "   PID: " << each_process.processId << endl;
+            cout << "   Parent PID: " << each_process.parentProcessId << endl;
+            cout << "   Process Program Counter: " << each_process.programCounter << endl;
+            cout << "   Process Value: " << each_process.value << endl;
+            cout << "   Process Priority: " << each_process.priority << endl;
+            cout << "   Process State: " << helper_converting_state(each_process.state) << endl;
             
-            cout << "Process Start: " << each_process.startTime << endl;
-            cout << "Process timeUsed: " << each_process.timeUsed << endl;
+            cout << "   Process Start: " << each_process.startTime << endl;
+            cout << "   Process timeUsed: " << each_process.timeUsed << endl;
             cout << "........................" << endl;
         }
     }
