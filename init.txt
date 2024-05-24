@@ -1,0 +1,9 @@
+S 1000
+A 19
+A 20
+D 53
+A 55Q
+F 1
+B
+R file_a.txt
+E

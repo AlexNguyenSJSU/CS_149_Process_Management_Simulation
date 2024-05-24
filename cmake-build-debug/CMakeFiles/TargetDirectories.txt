@@ -1,0 +1,3 @@
+/home/surikoya/Documents/Spring-2024/CS-159/Project_Gold/Final_Trial_Diamond/cmake-build-debug/CMakeFiles/Final_Trial.dir
+/home/surikoya/Documents/Spring-2024/CS-159/Project_Gold/Final_Trial_Diamond/cmake-build-debug/CMakeFiles/edit_cache.dir
+/home/surikoya/Documents/Spring-2024/CS-159/Project_Gold/Final_Trial_Diamond/cmake-build-debug/CMakeFiles/rebuild_cache.dir

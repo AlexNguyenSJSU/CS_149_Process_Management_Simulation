@@ -1,8 +1,9 @@
-S 1000
 S 2000
 D 500
 A 50
 F 1
 D 10
 A 100
+B
+R file_b.txt
 E
