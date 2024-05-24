@@ -17,7 +17,7 @@ constexpr unsigned int MAX_PRIORITY = 9;
 constexpr unsigned int MIN_PRIORITY = 0;
 
 // Array mapping process priorities to their time slices
-static const unsigned int priorityTimeSlices[MAX_PRIORITY + 1] = {25, 22, 19, 16, 13, 11, 9, 6, 3, 1};
+static const unsigned int priorityTimeSlices[MAX_PRIORITY + 1] = {34, 29, 25, 21, 16, 11, 6, 4, 3, 1};
 
 // Global data structures and variables
 std::vector<PCB*> processTable;
